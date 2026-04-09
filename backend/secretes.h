@@ -1,8 +1,8 @@
 #ifndef SECRETS_H
 #define SECRETS_H
 
-#define WIFI_SSID       "YOUR_ACTUAL_SSID"
-#define WIFI_PASSWORD   "YOUR_ACTUAL_PASSWORD"
-#define SERVER_URL      "http://192.168.1.100:5000/api/readings"
+#define WIFI_SSID       "Vedant"
+#define WIFI_PASSWORD   "19811983"
+#define SERVER_URL "http://10.193.23.38:5000/api/sensor-data"
 
 #endif
