@@ -3,9 +3,15 @@ import os
 import mysql.connector
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from flask_cors import CORS
+from flask import render_template
 
 load_dotenv()
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder="../frontend",
+            static_folder="../frontend",
+            static_url_path='')
+CORS(app)
 
 # ==========================
 # DB CONNECTION
@@ -20,7 +26,8 @@ def get_db():
 
 @app.route('/')
 def home():
-    return "Data Collection API Running..."
+    return render_template("index.html")
+
 
 # ==========================
 # POST API (ESP32)
@@ -76,6 +83,24 @@ def receive_data():
 
     return jsonify(result)
 
+@app.route('/api/latest', methods=['GET'])
+def get_latest():
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT voltage, current, temperature, light
+        FROM sensor_readings
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    data = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(data)
 # ==========================
 # RUN SERVER
 # ==========================
