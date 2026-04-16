@@ -1,28 +1,8 @@
-// ── API (Flask backend) ────────────────────────────────────────
+// ── API ─────────────────────────────────────────────
 const API_LATEST = "/api/latest";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ── Sidebar Toggle (mobile) ──
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  const sidebarOverlay = document.getElementById("sidebarOverlay");
-
-  if (sidebarToggle) {
-    sidebarToggle.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-      sidebarOverlay.classList.toggle("active");
-    });
-  }
-
-  if (sidebarOverlay) {
-    sidebarOverlay.addEventListener("click", () => {
-      sidebar.classList.remove("open");
-      sidebarOverlay.classList.remove("active");
-    });
-  }
-
-  // ── Detect page ──
   const isDashboard = document.getElementById("tempChart") !== null;
 
   if (typeof Chart !== "undefined") {
@@ -32,12 +12,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (isDashboard) initDashboard();
+
+  // ML Page
+  if (document.getElementById("confidencePct")) {
+    fetchMLData();
+    setInterval(fetchMLData, 3000);
+  }
 });
 
-/* ════════════════════════════════════════════════════════════════
+/* =========================
    DASHBOARD
-   ════════════════════════════════════════════════════════════════ */
-
+========================= */
 function initDashboard() {
 
   const tempCtx = document.getElementById("tempChart").getContext("2d");
@@ -48,18 +33,13 @@ function initDashboard() {
       labels: [],
       datasets: [{
         data: [],
-        borderColor: "#2F5755",
-        borderWidth: 2.5,
-        fill: false,
-        tension: 0.4,
-        pointRadius: 0
+        borderWidth: 2,
+        tension: 0.4
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { display: false }, x: { display: false } }
+      plugins: { legend: { display: false } }
     }
   });
 
@@ -70,35 +50,38 @@ function initDashboard() {
 
       if (!data) return;
 
-      // ── Temperature ──
+      // Temperature
       if (data.temperature !== null) {
         document.getElementById("tempValue").innerHTML =
           `${data.temperature.toFixed(1)} °C`;
-        updateTempStatus(data.temperature);
       }
 
-      // ── Voltage ──
+      // Voltage
       if (data.voltage !== null) {
         document.getElementById("voltageVal").textContent =
           `${data.voltage.toFixed(2)} V`;
-        updateVoltageStatus(data.voltage);
       }
 
-      // ── Current ──
+      // Current
       if (data.current !== null) {
         document.getElementById("currentVal").textContent =
           data.current.toFixed(3);
-        updateCurrentAlert(data.current);
       }
 
-      // ── Light ──
+      // Light
       if (data.light !== null) {
         document.getElementById("signalStrength").textContent =
           `${data.light} lux`;
       }
 
-      // ── Chart Update ──
-      tempChart.data.labels.push(currentTimeLabel());
+      // ✅ Prediction (NEW)
+      if (data.prediction !== null && data.prediction !== undefined) {
+        document.getElementById("predictionVal").textContent =
+          data.prediction.toFixed(2) + " %";
+      }
+
+      // Chart
+      tempChart.data.labels.push(new Date().toLocaleTimeString());
       tempChart.data.datasets[0].data.push(data.temperature ?? 0);
 
       if (tempChart.data.labels.length > 10) {
@@ -108,11 +91,8 @@ function initDashboard() {
 
       tempChart.update();
 
-      showConnectionStatus(true);
-
     } catch (err) {
-      console.error("[ERR]", err);
-      showConnectionStatus(false);
+      console.error("Dashboard Error:", err);
     }
   }
 
@@ -120,47 +100,38 @@ function initDashboard() {
   setInterval(fetchDashboard, 2000);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   HELPERS
-   ════════════════════════════════════════════════════════════════ */
+/* =========================
+   ML PAGE
+========================= */
+async function fetchMLData() {
+  try {
+    const res = await fetch("/api/latest");
+    const data = await res.json();
 
-function updateTempStatus(temp) {
-  const badge = document.getElementById("tempStatus");
-  if (temp > 30) {
-    badge.innerHTML = "Critical";
-  } else if (temp > 27) {
-    badge.innerHTML = "High";
-  } else {
-    badge.innerHTML = "Normal";
+    if (!data) return;
+
+    if (data.prediction !== null) {
+      document.getElementById("confidencePct").textContent =
+        data.prediction.toFixed(0) + "%";
+    }
+
+    // Update metrics
+    if (data.temperature !== null) {
+      document.getElementById("tempML").textContent =
+        data.temperature.toFixed(1) + " °C";
+    }
+
+    if (data.voltage !== null) {
+      document.getElementById("voltML").textContent =
+        data.voltage.toFixed(2) + " V";
+    }
+
+    if (data.current !== null) {
+      document.getElementById("currML").textContent =
+        data.current.toFixed(2) + " A";
+    }
+
+  } catch (err) {
+    console.error("ML Error:", err);
   }
-}
-
-function updateVoltageStatus(volt) {
-  const el = document.getElementById("voltageStatus");
-  if (volt < 210 || volt > 240) {
-    el.textContent = "Out of Range";
-  } else {
-    el.textContent = "Safe Range";
-  }
-}
-
-function updateCurrentAlert(current) {
-  const alert = document.getElementById("currentAlert");
-  if (current > 6.5) {
-    alert.innerHTML = "⚠ High Current";
-  } else {
-    alert.innerHTML = "Normal";
-  }
-}
-
-function showConnectionStatus(connected) {
-  const el = document.getElementById("nodesActive");
-  if (!el) return;
-  el.textContent = connected ? "Online" : "Offline";
-}
-
-function currentTimeLabel() {
-  const now = new Date();
-  return now.getHours().toString().padStart(2, "0") + ":" +
-         now.getMinutes().toString().padStart(2, "0");
 }
