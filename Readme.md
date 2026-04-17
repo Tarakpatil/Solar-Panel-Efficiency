@@ -30,7 +30,7 @@ This system monitors a solar panel's real-time performance using four physical s
 
 ## System Architecture
 
-![System Architecture Diagram](assets\mpis_proj_circuit.png)
+![System Architecture Diagram](assets/mpis_proj_circuit.png)
 *The system follows a tiered architecture: Hardware (ESP32) -> Backend (Flask/MySQL) -> Intelligence (Scikit-Learn) -> Frontend (Web Dashboard).*
 
 ---
